@@ -1,1 +1,2 @@
-build
+rocm-build
+migraphx-build

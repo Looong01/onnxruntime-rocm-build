@@ -7,29 +7,21 @@ version="1.22.1"
 dir_os="Linux"
 py_versions=("py310" "py311" "py312")
 # py_versions=("py39" "py310" "py311" "py312" "py313")
-backends=("rocm" "migraphx")
-# backends=("migraphx")
 script_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 base_dir="${script_dir}/onnxruntime-${version}"
-# base_dir="${script_dir}/onnxruntime-${version}"
-output_base="../"
+output_base="./"
 
 # 记录起始目录
 start_dir="$(pwd)"
 echo "Starting directory: ${start_dir}"
 
+# 合并的后端标识
+backend="rocm+migraphx"
+
 # Build function for shared library
 build_shared_lib() {
-    local backend=$1
-    local backend_flags
-    
-    case $backend in
-        rocm) backend_flags="--use_rocm --rocm_home /opt/rocm" ;;
-        migraphx) backend_flags="--use_migraphx --migraphx_home /opt/rocm" ;;
-    esac
-
     echo "=============================================="
-    echo "Building ${backend} shared library..."
+    echo "Building combined (rocm+migraphx) shared library..."
     echo "=============================================="
     
     # 进入构建目录
@@ -40,7 +32,7 @@ build_shared_lib() {
     local build_dir="build/${dir_os}"
     mkdir -p "${build_dir}"
     
-    # 构建共享库
+    # 构建共享库（同时启用rocm和migraphx）
     "${conda_path}/py312/bin/python" \
         "tools/ci_build/build.py" \
         --build_dir "${build_dir}" \
@@ -48,7 +40,10 @@ build_shared_lib() {
         --skip_tests \
         --build_shared_lib \
         --parallel \
-        ${backend_flags}
+        --use_rocm \
+        --rocm_home /opt/rocm \
+        --use_migraphx \
+        --migraphx_home /opt/rocm
     
     # 返回到起始目录进行移动操作
     cd "${start_dir}" || exit 1
@@ -62,23 +57,16 @@ build_shared_lib() {
     mv "${base_dir}/${build_dir}" "${dest_dir}/onnxruntime-${version}-${backend}"
     
     echo "=============================================="
-    echo "${backend} shared library built and moved to ${dest_dir}/onnxruntime-${version}-${backend}"
+    echo "Combined shared library built and moved to ${dest_dir}/onnxruntime-${version}-${backend}"
     echo "=============================================="
 }
 
 # Build function for Python wheel (single version)
 build_wheel() {
-    local backend=$1
-    local py=$2
-    local backend_flags
-    
-    case $backend in
-        rocm) backend_flags="--use_rocm --rocm_home /opt/rocm" ;;
-        migraphx) backend_flags="--use_migraphx --migraphx_home /opt/rocm" ;;
-    esac
+    local py=$1
 
     echo "=============================================="
-    echo "Building ${backend} wheel for ${py}..."
+    echo "Building combined wheel for ${py}..."
     echo "=============================================="
     
     # 进入构建目录
@@ -89,7 +77,7 @@ build_wheel() {
     local build_dir="build/${dir_os}"
     mkdir -p "${build_dir}"
     
-    # 构建 wheel
+    # 构建 wheel（同时启用rocm和migraphx）
     "${conda_path}/${py}/bin/python" \
         "tools/ci_build/build.py" \
         --build_dir "${build_dir}" \
@@ -97,7 +85,10 @@ build_wheel() {
         --skip_tests \
         --build_wheel \
         --parallel \
-        ${backend_flags}
+        --use_rocm \
+        --rocm_home /opt/rocm \
+        --use_migraphx \
+        --migraphx_home /opt/rocm
     
     # 返回到起始目录进行移动操作
     cd "${start_dir}" || exit 1
@@ -112,36 +103,32 @@ build_wheel() {
     rm -rf "${base_dir}/${build_dir}"
     
     echo "=============================================="
-    echo "${backend} wheel for ${py} built and moved to ${dest_dir}"
+    echo "Combined wheel for ${py} built and moved to ${dest_dir}"
     echo "=============================================="
 }
 
 # Main build process
-for backend in "${backends[@]}"; do
-    echo "################################################################"
-    echo "Starting ${backend} backend builds"
-    echo "################################################################"
-    
-    # 1. 首先构建共享库
-    build_shared_lib "${backend}"
-    
-    # 2. 按顺序构建所有 Python 版本的 wheel
-    for py in "${py_versions[@]}"; do
-        build_wheel "${backend}" "${py}"
-    done
-    
-    echo "################################################################"
-    echo "Completed all builds for ${backend} backend"
-    echo "################################################################"
+echo "################################################################"
+echo "Starting combined backend builds (rocm+migraphx)"
+echo "################################################################"
+
+# 1. 首先构建共享库
+build_shared_lib
+
+# 2. 按顺序构建所有 Python 版本的 wheel
+for py in "${py_versions[@]}"; do
+    build_wheel "${py}"
 done
+
+echo "################################################################"
+echo "Completed all builds for combined backend"
+echo "################################################################"
 
 echo "=============================================="
 echo "All builds completed successfully!"
-echo "Output directories:"
-for backend in "${backends[@]}"; do
-    echo "  ${output_base}${backend}-build"
-    echo "    - onnxruntime-${version}-${backend} (shared library)"
-    echo "    - onnxruntime-${version}-cp39-*.whl (Python 3.9 wheel)"
-    echo "    - ... (other Python wheels)"
-    echo "    - onnxruntime-${version}-cp313-*.whl (Python 3.13 wheel)"
+echo "Output directory: ${output_base}${backend}-build"
+echo "  - onnxruntime-${version}-${backend} (shared library)"
+for py in "${py_versions[@]}"; do
+    echo "  - onnxruntime-${version}-${py}-*.whl (Python wheel)"
 done
+echo "=============================================="

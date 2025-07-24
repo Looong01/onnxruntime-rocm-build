@@ -795,15 +795,15 @@ setup(
     version=version_number,
     description="ONNX Runtime is a runtime accelerator for Machine Learning models",
     long_description=long_description,
-    author="Microsoft Corporation",
-    author_email="onnxruntime@microsoft.com",
+    author="Microsoft Corporation; Loong",
+    author_email="lizelongdd@hotmail.com",
     cmdclass=cmd_classes,
     license="MIT License",
     packages=packages,
     ext_modules=ext_modules,
     package_data=package_data,
-    url="https://onnxruntime.ai",
-    download_url="https://github.com/microsoft/onnxruntime/tags",
+    url="https://github.com/Looong01/onnxruntime-rocm-build",
+    download_url="https://github.com/Looong01/onnxruntime-rocm-build/tags",
     data_files=data_files,
     install_requires=install_requires,
     extras_require=extras_require,
@@ -815,4 +815,7 @@ setup(
         ]
     },
     classifiers=classifiers,
+    project_urls={
+        "Source Code": "https://github.com/Looong01/onnxruntime-rocm-build",
+    },
 )

@@ -2,21 +2,24 @@
 set -euo pipefail
 
 # Configuration
-conda_path="/mnt/4T/miniconda3/loong"
+conda_path="/root/miniconda3/"
+# conda_path="/mnt/4T/miniconda3/loong"
 version="1.22.1"
+glibc_version="2.35"
+# glibc_version="2.38"
 dir_os="Linux"
-py_versions=("py310" "py311" "py312")
-# py_versions=("py39" "py310" "py311" "py312" "py313")
+py_versions=("py310" "py311" "py312" "py313")
+
+output_base="./"
+start_dir="$(pwd)"
+glibc_file_version="${glibc_version//./_}"
+dir_os_name="${dir_os,,}"
 script_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 base_dir="${script_dir}/onnxruntime-${version}"
-output_base="./"
+backend="glibc_${glibc_version}"
 
 # 记录起始目录
-start_dir="$(pwd)"
 echo "Starting directory: ${start_dir}"
-
-# 合并的后端标识
-backend="rocm+migraphx"
 
 # Build function for shared library
 build_shared_lib() {
@@ -43,7 +46,8 @@ build_shared_lib() {
         --use_rocm \
         --rocm_home /opt/rocm \
         --use_migraphx \
-        --migraphx_home /opt/rocm
+        --migraphx_home /opt/rocm \
+        --allow_running_as_root
     
     # 返回到起始目录进行移动操作
     cd "${start_dir}" || exit 1
@@ -53,11 +57,87 @@ build_shared_lib() {
     local dest_dir="${output_base}${backend}-build"
     mkdir -p "${dest_dir}"
     
-    # 重命名并移动共享库构建目录
-    mv "${base_dir}/${build_dir}" "${dest_dir}/onnxruntime-${version}-${backend}"
+    # 创建目标目录结构
+    local target_dir="${dest_dir}/onnxruntime-${dir_os_name}-x64-rocm-${version}"
+    
+    # 创建必要的目录结构
+    mkdir -p "${target_dir}/include/core"
+    mkdir -p "${target_dir}/lib/cmake/onnxruntime"
+    mkdir -p "${target_dir}/lib/pkgconfig"
+    
+    # 第一部分：处理构建目录中的文件
+    local release_dir="${base_dir}/${build_dir}/Release"
+    
+    # 查找并复制cmake配置文件
+    find "${release_dir}" -type f \( -name "onnxruntimeConfig.cmake" -o -name "onnxruntimeConfigVersion.cmake" -o -name "onnxruntimeTargets.cmake" -o -name "onnxruntimeTargets-release.cmake" \) -exec cp {} "${target_dir}/lib/cmake/onnxruntime/" \;
+    
+    # 复制pkgconfig文件
+    find "${release_dir}" -type f -name "libonnxruntime.pc" -exec cp {} "${target_dir}/lib/pkgconfig/" \;
+    
+    # 复制主共享库文件
+    find "${release_dir}" -type f -name "libonnxruntime.so*" -exec cp {} "${target_dir}/lib/" \;
+    
+    # 复制providers共享库文件
+    find "${release_dir}" -type f -name "libonnxruntime_providers_*.so" -exec cp {} "${target_dir}/lib/" \;
+    
+    # 第二部分：处理源码目录中的头文件
+    # 复制指定头文件
+    local headers=(
+        "cpu_provider_factory.h"
+        "onnxruntime_c_api.h"
+        "onnxruntime_cxx_api.h"
+        "onnxruntime_cxx_inline.h"
+        "onnxruntime_float16.h"
+        "onnxruntime_lite_custom_op.h"
+        "onnxruntime_run_options_config_keys.h"
+        "onnxruntime_session_options_config_keys.h"
+        "provider_options.h"
+    )
+    
+    for header in "${headers[@]}"; do
+        find "${base_dir}" -type f -name "${header}" -exec cp {} "${target_dir}/include/" \;
+    done
+    
+    # 复制providers文件夹并删除不需要的子目录
+    cp -r "${base_dir}/include/onnxruntime/core/providers" "${target_dir}/include/core/"
+    local unwanted_providers=("acl" "armnn" "cann" "coreml" "dml" "dnnl" "nnapi" "openvino" "rknpu" "tvm" "vsinpu" "webgpu" "winml")
+    for provider in "${unwanted_providers[@]}"; do
+        rm -rf "${target_dir}/include/core/providers/${provider}"
+    done
+
+    # 在目标库目录中创建符号链接
+    cd "${target_dir}/lib" || exit 1
+    
+    # 查找主共享库文件（格式为libonnxruntime.so.x.y.z）
+    local so_file=$(ls libonnxruntime.so.*.*.* 2>/dev/null | head -1)
+    
+    if [[ -z "$so_file" ]]; then
+        echo "Error: Could not find libonnxruntime.so.x.y.z file"
+        exit 1
+    fi
+    
+    # 提取主版本号（x部分）
+    local major_version=$(echo "$so_file" | awk -F'.' '{print $(NF-2)}')
+    
+    # 创建第一级符号链接：libonnxruntime.so.x -> libonnxruntime.so.x.y.z
+    local so_major="libonnxruntime.so.${major_version}"
+    ln -sf "$so_file" "$so_major"
+    
+    # 创建第二级符号链接：libonnxruntime.so -> libonnxruntime.so.x
+    ln -sf "$so_major" "libonnxruntime.so"
+    
+    echo "Created symlinks:"
+    echo "  $so_major -> $so_file"
+    echo "  libonnxruntime.so -> $so_major"
+    
+    # 返回到起始目录
+    cd "${start_dir}" || exit 1
+    
+    # 清理构建目录（在原始位置）
+    # rm -rf "${base_dir}/${build_dir}"
     
     echo "=============================================="
-    echo "Combined shared library built and moved to ${dest_dir}/onnxruntime-${version}-${backend}"
+    echo "Combined shared library built and organized in ${target_dir}"
     echo "=============================================="
 }
 
@@ -88,7 +168,8 @@ build_wheel() {
         --use_rocm \
         --rocm_home /opt/rocm \
         --use_migraphx \
-        --migraphx_home /opt/rocm
+        --migraphx_home /opt/rocm \
+        --allow_running_as_root
     
     # 返回到起始目录进行移动操作
     cd "${start_dir}" || exit 1
@@ -99,11 +180,54 @@ build_wheel() {
     mkdir -p "${dest_dir}"
     mv "${base_dir}/${build_dir}/Release/dist"/*.whl "${dest_dir}/"
     
+    # 重命名wheel文件：将"linux"替换为"manylinux_${glibc_file_version}"
+    for wheel in "${dest_dir}"/*.whl; do
+        # 只处理包含"linux"的文件名
+        if [[ $wheel == *${dir_os_name}* ]]; then
+            # 使用glibc_file_version（点已替换为下划线）
+            new_name="${wheel//${dir_os_name}/manylinux_${glibc_file_version}}"
+            mv "$wheel" "$new_name"
+            echo "Renamed: $(basename "$wheel") -> $(basename "$new_name")"
+        fi
+    done
+    
     # 清理构建目录（在原始位置）
-    rm -rf "${base_dir}/${build_dir}"
+    # rm -rf "${base_dir}/${build_dir}"
     
     echo "=============================================="
     echo "Combined wheel for ${py} built and moved to ${dest_dir}"
+    echo "=============================================="
+}
+
+# 压缩函数
+compress_results() {
+    local dest_dir="${output_base}${backend}-build"
+    local target_dir="${dest_dir}/onnxruntime-${dir_os_name}-x64-rocm-${version}"
+    
+    echo "=============================================="
+    echo "Compressing build results..."
+    echo "=============================================="
+    
+    # 1. 将整个构建目录压缩为7z格式
+    local sevenz_archive="${start_dir}/onnxruntime-${version}-glibc_${glibc_version}-build.7z"
+    if command -v 7z &> /dev/null; then
+        echo "Compressing entire build directory to ${sevenz_archive}..."
+        7z a -t7z -m0=lzma2 -mx=9 -mfb=64 -md=32m -ms=on "${sevenz_archive}" "${dest_dir}"/*
+        echo "7z compression completed"
+    else
+        echo "Warning: 7z command not found. Skipping 7z compression."
+    fi
+    
+    # 2. 将共享库目录单独压缩为tgz格式
+    local tgz_archive="${dest_dir}/onnxruntime-${dir_os_name}-x64-rocm-${version}.tgz"
+    echo "Compressing shared library directory to ${tgz_archive}..."
+    tar -czf "${tgz_archive}" -C "${dest_dir}" "onnxruntime-${dir_os_name}-x64-rocm-${version}"
+    echo "tgz compression completed"
+    
+    echo "=============================================="
+    echo "Compression completed:"
+    echo " - Full build directory: ${sevenz_archive}"
+    echo " - Shared library only: ${tgz_archive}"
     echo "=============================================="
 }
 
@@ -120,6 +244,12 @@ for py in "${py_versions[@]}"; do
     build_wheel "${py}"
 done
 
+# 3. 压缩构建结果
+compress_results
+
+# 清理构建目录（在原始位置）
+rm -rf "${base_dir}/${build_dir}"
+
 echo "################################################################"
 echo "Completed all builds for combined backend"
 echo "################################################################"
@@ -128,7 +258,5 @@ echo "=============================================="
 echo "All builds completed successfully!"
 echo "Output directory: ${output_base}${backend}-build"
 echo "  - onnxruntime-${version}-${backend} (shared library)"
-for py in "${py_versions[@]}"; do
-    echo "  - onnxruntime-${version}-${py}-*.whl (Python wheel)"
-done
+echo "  - onnxruntime_rocm-${version}-cp*-cp*-manylinux_${glibc_file_version}_x86_64.whl (Python wheels)"
 echo "=============================================="

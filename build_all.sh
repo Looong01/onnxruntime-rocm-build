@@ -6,7 +6,6 @@ conda_path="/root/miniconda3/"
 # conda_path="/mnt/4T/miniconda3/loong"
 version="1.22.1"
 glibc_version="2.35"
-# glibc_version="2.38"
 dir_os="Linux"
 py_versions=("py310" "py311" "py312" "py313")
 
@@ -135,6 +134,11 @@ build_shared_lib() {
     
     # 清理构建目录（在原始位置）
     # rm -rf "${base_dir}/${build_dir}"
+    rm -f  "${base_dir}/${build_dir}/Release/CMakeCache.txt"
+    rm -rf "${base_dir}/${build_dir}/Release/CMakeFiles"
+    rm -f  "${base_dir}/${build_dir}/Release/Makefile" "${base_dir}/${build_dir}/Release/cmake_install.cmake"
+    find "${base_dir}/${build_dir}" -type f \( -name "*.cmake" -o -name "CMakeCache.txt" -o -name "Makefile" \) -exec rm -f {} +
+    find "${base_dir}/${build_dir}" -type d -name "CMakeFiles" -exec rm -rf {} +
     
     echo "=============================================="
     echo "Combined shared library built and organized in ${target_dir}"
@@ -193,7 +197,13 @@ build_wheel() {
     
     # 清理构建目录（在原始位置）
     # rm -rf "${base_dir}/${build_dir}"
-    
+    rm -f  "${base_dir}/${build_dir}/Release/CMakeCache.txt"
+    rm -rf "${base_dir}/${build_dir}/Release/CMakeFiles"
+    rm -f  "${base_dir}/${build_dir}/Release/Makefile" "${base_dir}/${build_dir}/Release/cmake_install.cmake"
+    find "${base_dir}/${build_dir}" -type f \( -name "*.cmake" -o -name "CMakeCache.txt" -o -name "Makefile" \) -exec rm -f {} +
+    find "${base_dir}/${build_dir}" -type d -name "CMakeFiles" -exec rm -rf {} +
+
+
     echo "=============================================="
     echo "Combined wheel for ${py} built and moved to ${dest_dir}"
     echo "=============================================="

@@ -15,6 +15,7 @@ glibc_file_version="${glibc_version//./_}"
 dir_os_name="${dir_os,,}"
 script_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 base_dir="${script_dir}/onnxruntime-${version}"
+build_dir="build/${dir_os}"
 backend="glibc_${glibc_version}"
 
 # 记录起始目录
@@ -31,7 +32,6 @@ build_c_cpp_csharp() {
     echo "Working directory: $(pwd)"
     
     # 确保构建目录存在
-    local build_dir="build/${dir_os}"
     mkdir -p "${build_dir}"
     
     # 构建共享库（同时启用rocm和migraphx）
@@ -177,7 +177,6 @@ build_wheel() {
     echo "Working directory: $(pwd)"
     
     # 重新创建构建目录
-    local build_dir="build/${dir_os}"
     mkdir -p "${build_dir}"
     
     # 构建 wheel（同时启用rocm和migraphx）

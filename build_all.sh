@@ -156,7 +156,7 @@ build_c_cpp_csharp() {
     rm -f  "${base_dir}/${build_dir}/Release/CMakeCache.txt"
     rm -rf "${base_dir}/${build_dir}/Release/CMakeFiles"
     rm -f  "${base_dir}/${build_dir}/Release/Makefile" "${base_dir}/${build_dir}/Release/cmake_install.cmake"
-    find "${base_dir}/${build_dir}" -type f \( -name "*.cmake" -o -name "CMakeCache.txt" -o -name "Makefile" \) -exec rm -f {} +
+    find "${base_dir}/${build_dir}" -type f \( -name "*.cmake" -o -name "*.nupkg" -o -name "CMakeCache.txt" -o -name "Makefile" \) -exec rm -f {} +
     find "${base_dir}/${build_dir}" -type d -name "CMakeFiles" -exec rm -rf {} +
     
     echo "=============================================="
@@ -272,8 +272,8 @@ echo "################################################################"
 echo "Starting combined backend builds (rocm+migraphx)"
 echo "################################################################"
 
-# 1. 首先构建共享库
-build_shared_lib
+# 1. 首先构建c/c++/csharp库
+build_c_cpp_csharp
 
 # 2. 按顺序构建所有 Python 版本的 wheel
 for py in "${py_versions[@]}"; do

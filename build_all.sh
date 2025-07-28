@@ -20,10 +20,10 @@ backend="glibc_${glibc_version}"
 # 记录起始目录
 echo "Starting directory: ${start_dir}"
 
-# Build function for shared library
-build_shared_lib() {
+# Build function for C/C++/CSharp
+build_c_cpp_csharp() {
     echo "=============================================="
-    echo "Building combined (rocm+migraphx) shared library..."
+    echo "Building combined (rocm+migraphx) C/C++/CSharp..."
     echo "=============================================="
     
     # 进入构建目录
@@ -41,6 +41,7 @@ build_shared_lib() {
         --config Release \
         --skip_tests \
         --build_shared_lib \
+        --build_nuget \
         --parallel \
         --use_rocm \
         --rocm_home /opt/rocm \
@@ -131,6 +132,24 @@ build_shared_lib() {
     
     # 返回到起始目录
     cd "${start_dir}" || exit 1
+
+    # 移动Nuget包到目标目录
+    # 复制并重命名 NuGet 包到目标目录
+    find "$release_dir" -type f -name "Microsoft.ML.OnnxRuntime.*.nupkg" | while read -r pkg; do
+        filename=$(basename "$pkg")
+        
+        # 去掉 .nupkg 后缀，删除 -dev-* 及其后缀
+        base=${filename%.nupkg}
+        base=${base%%-dev*}
+        
+        # 拼出新文件名
+        newname="${base}.nupkg"
+        
+        # 复制到目标目录
+        cp "$pkg" "${dest_dir}/${newname}"
+        echo "Copied and renamed: $filename → $newname"
+    done
+    echo "Moved Nuget packages to ${dest_dir}/"
     
     # 清理构建目录（在原始位置）
     # rm -rf "${base_dir}/${build_dir}"
@@ -141,7 +160,7 @@ build_shared_lib() {
     find "${base_dir}/${build_dir}" -type d -name "CMakeFiles" -exec rm -rf {} +
     
     echo "=============================================="
-    echo "Combined shared library built and organized in ${target_dir}"
+    echo "Combined C/C++/CSharp built and organized in ${target_dir}"
     echo "=============================================="
 }
 
@@ -182,25 +201,32 @@ build_wheel() {
     # 移动生成的 wheel 到目标目录
     local dest_dir="${output_base}${backend}-build"
     mkdir -p "${dest_dir}"
-    mv "${base_dir}/${build_dir}/Release/dist"/*.whl "${dest_dir}/"
     
-    # 重命名wheel文件：将"linux"替换为"manylinux_${glibc_file_version}"
-    for wheel in "${dest_dir}"/*.whl; do
-        # 只处理包含"linux"的文件名
-        if [[ $wheel == *${dir_os_name}* ]]; then
-            # 使用glibc_file_version（点已替换为下划线）
-            new_name="${wheel//${dir_os_name}/manylinux_${glibc_file_version}}"
-            mv "$wheel" "$new_name"
-            echo "Renamed: $(basename "$wheel") -> $(basename "$new_name")"
-        fi
-    done
+    # 获取生成的wheel文件（应该只有一个）
+    local dist_dir="${base_dir}/${build_dir}/Release/dist"
+    local dist_wheel
+    dist_wheel=$(ls "${dist_dir}"/*.whl 2>/dev/null | head -1)
     
+    if [[ -z "$dist_wheel" ]]; then
+        echo "Error: No wheel file generated for ${py}"
+        exit 1
+    fi
+    
+    # 只替换第一次出现的 "-linux_" 部分
+    local wheel_base
+    wheel_base=$(basename "$dist_wheel")
+    local wheel_new="${wheel_base/-linux_/-manylinux_${glibc_file_version}_}"
+    
+    # 移动并重命名
+    mv "$dist_wheel" "${dest_dir}/${wheel_new}"
+    echo "Moved & renamed: ${wheel_base}  -->  ${wheel_new}"
+
     # 清理构建目录（在原始位置）
     # rm -rf "${base_dir}/${build_dir}"
     rm -f  "${base_dir}/${build_dir}/Release/CMakeCache.txt"
     rm -rf "${base_dir}/${build_dir}/Release/CMakeFiles"
     rm -f  "${base_dir}/${build_dir}/Release/Makefile" "${base_dir}/${build_dir}/Release/cmake_install.cmake"
-    find "${base_dir}/${build_dir}" -type f \( -name "*.cmake" -o -name "CMakeCache.txt" -o -name "Makefile" \) -exec rm -f {} +
+    find "${base_dir}/${build_dir}" -type f \( -name "*.cmake" -o -name "*.whl" -o -name "CMakeCache.txt" -o -name "Makefile" \) -exec rm -f {} +
     find "${base_dir}/${build_dir}" -type d -name "CMakeFiles" -exec rm -rf {} +
 
 

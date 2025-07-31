@@ -4,27 +4,44 @@
 3. Add Python 3.13 support.
 4. Support ROCm 6.4.* & 6.3.*.
   
+# Prerequisites
+Be sure that you have installed ROCm 6.3.* or newer versions. You can use ```amd-smi``` to check it.
+
 # How to use
 
-## Option 1: From Pypi.org
+## 1. C/C++ packages
+Go to Releases page, choose the versions of ONNXRuntime-ROCm you want, and ```tar zxvf ``` it.
 
-1. Be sure that you have installed ROCm 6.3.* or newer. You can use `amd-smi` to check it.  
-2. Run:
+## 2. Python wheels
+### Option 1: From Pypi.org (Currently not available, updating)
    ```bash
    pip install onnxruntime-rocm
+   ```
 
-## Option 2: From Github Release page
+### Option 2: From Github Release page
+1. Go to Releases page, choose the versions of ONNXRuntime-ROCm you want and the right version of your Python environment.
+2. Download the wheel file.
+3. ```pip install``` it.
 
-1. Be sure that you have installed ROCm 6.3.* or newer versions. You can use ```amd-smi``` to check it.
-2. Go to Releases module, choose the versions of ONNXRuntime-ROCm you want and the right version of your Python environment.
-3. Download the wheel file.
-4. ```pip install``` it.
+## 3. C# packages
+1. Go to Releases page, choose the versions of ONNXRuntime-ROCm you want and copy it to a ```local_nuget_dir```.
+2. Add the following configuration to your ```Nuget.Config```.
+```
+   <configuration>
+      <packageSources>
+         <add key="LocalSource" value="/path/to/local_nuget_dir" />
+      </packageSources>
+   </configuration>
+```
+3. ```dotnet add package Microsoft.ML.OnnxRuntime.Managed --version <the version of nupkg>``` and ```dotnet add package Microsoft.ML.OnnxRuntime.ROCm --version <the version of nupkg>```
+
   
 # Build environment
 ```
 Ubuntu 22.04
 Python 3.10~3.13
 ROCm 6.4.2
+GLIBC 2.35
 ```
   
 # Current version

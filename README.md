@@ -13,7 +13,7 @@ Be sure that you have installed ROCm 6.3.* or newer versions. You can use ```amd
 Go to Releases page, choose the versions of ONNXRuntime-ROCm you want, and ```tar zxvf ``` it.
 
 ## 2. Python wheels
-### Option 1: From Pypi.org (Currently not available, updating)
+### Option 1: From Pypi.org
    ```bash
    pip install onnxruntime-rocm
    ```

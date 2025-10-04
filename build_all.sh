@@ -1,8 +1,10 @@
 #!/bin/bash
 set -euo pipefail
 
+# export CXXFLAGS="-Wno-error"
+
 conda_path="/root/miniconda3/"
-version="1.22.1"
+version="1.23.0"
 glibc_version="2.35"
 dir_os="Linux"
 py_versions=("py310" "py311" "py312" "py313")
@@ -148,11 +150,13 @@ build_wheel() {
         --skip_tests \
         --build_wheel \
         --parallel \
-        --use_rocm \
-        --rocm_home /opt/rocm \
         --use_migraphx \
         --migraphx_home /opt/rocm \
         --allow_running_as_root
+
+        
+        # --use_rocm \
+        # --rocm_home /opt/rocm \
     
     cd "${start_dir}" || exit 1
     echo "Returned to starting directory: $(pwd)"

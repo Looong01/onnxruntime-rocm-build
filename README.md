@@ -3,6 +3,7 @@
 2. ~~Remove Python 3.9 support, because ONNXRuntime 1.20.0 does not support it.~~ Old update
 3. Add Python 3.13 support.
 4. Support ROCm 6.4.* & 6.3.*.
+5. Remove ROCm EP because of 1.23.0 update.
   
 # Prerequisites
 Be sure that you have installed ROCm 6.3.* or newer versions. You can use ```amd-smi``` to check it.
@@ -15,7 +16,7 @@ Go to Releases page, choose the versions of ONNXRuntime-ROCm you want, and ```ta
 ## 2. Python wheels
 ### Option 1: From Pypi.org
    ```bash
-   pip install onnxruntime-rocm
+   pip install onnxruntime-rocm onnxruntime-migraphx
    ```
 
 ### Option 2: From Github Release page
@@ -40,11 +41,11 @@ Go to Releases page, choose the versions of ONNXRuntime-ROCm you want, and ```ta
 ```
 Ubuntu 22.04
 Python 3.10~3.13
-ROCm 6.4.2
+ROCm 7.0.1
 GLIBC 2.35
 ```
   
 # Current version
 ```
-onnxruntime-1.22.1
+onnxruntime-1.23.0
 ```

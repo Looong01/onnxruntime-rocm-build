@@ -4,10 +4,10 @@ set -euo pipefail
 # export CXXFLAGS="-Wno-error"
 
 conda_path="/root/miniconda3/"
-version="1.23.0"
-glibc_version="2.35"
+version="1.23.2"
+glibc_version="2.34"
 dir_os="Linux"
-py_versions=("py310" "py311" "py312" "py313")
+py_versions=("py310" "py311" "py312" "py313" "py314")
 
 output_base="./"
 start_dir="$(pwd)"
@@ -38,8 +38,6 @@ build_c_cpp_csharp() {
         --build_shared_lib \
         --build_nuget \
         --parallel \
-        --use_rocm \
-        --rocm_home /opt/rocm \
         --use_migraphx \
         --migraphx_home /opt/rocm \
         --allow_running_as_root
@@ -153,10 +151,6 @@ build_wheel() {
         --use_migraphx \
         --migraphx_home /opt/rocm \
         --allow_running_as_root
-
-        
-        # --use_rocm \
-        # --rocm_home /opt/rocm \
     
     cd "${start_dir}" || exit 1
     echo "Returned to starting directory: $(pwd)"

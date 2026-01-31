@@ -2,3 +2,4 @@ rocm-build
 migraphx-build
 upload
 build
+.fake

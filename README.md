@@ -1,8 +1,8 @@
 # Update
 1. Upgrade ONNXRuntime libraries to the newest versions.
 2. ~~Remove Python 3.9 support, because ONNXRuntime 1.20.0 does not support it.~~ Old update
-3. Add Python 3.13 support.
-4. Support ROCm 6.4.* & 6.3.*.
+3. Add Python 3.14 support.
+4. Support ROCm 7.1.1.
 5. Remove ROCm EP because of 1.23.0 update.
   
 # Prerequisites
@@ -40,12 +40,14 @@ Go to Releases page, choose the versions of ONNXRuntime-ROCm you want, and ```ta
 # Build environment
 ```
 Ubuntu 22.04
-Python 3.10~3.13
-ROCm 7.0.1
-GLIBC 2.35
+Python 3.10~3.14
+ROCm 7.1.1
+GLIBC 2.34
+GNU-11
+Clang-20
 ```
   
 # Current version
 ```
-onnxruntime-1.23.0
+onnxruntime-1.23.2
 ```

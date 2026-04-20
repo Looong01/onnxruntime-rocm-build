@@ -4,7 +4,8 @@ set -euo pipefail
 # export CXXFLAGS="-Wno-error"
 
 conda_path="/root/miniconda3/"
-version="1.23.2"
+version="1.24.4"
+rocm_version="7.2"
 glibc_version="2.34"
 dir_os="Linux"
 py_versions=("py310" "py311" "py312" "py313" "py314")
@@ -40,6 +41,7 @@ build_c_cpp_csharp() {
         --parallel \
         --use_migraphx \
         --migraphx_home /opt/rocm \
+        --cmake_extra_defines onnxruntime_BUILD_UNIT_TESTS=OFF \
         --allow_running_as_root
     
     cd "${start_dir}" || exit 1
@@ -76,9 +78,10 @@ build_c_cpp_csharp() {
     for header in "${headers[@]}"; do
         find "${base_dir}" -type f -name "${header}" -exec cp {} "${target_dir}/include/" \;
     done
-    
     cp -r "${base_dir}/include/onnxruntime/core/providers" "${target_dir}/include/core/"
-    local unwanted_providers=("acl" "armnn" "cann" "coreml" "dml" "dnnl" "nnapi" "openvino" "rknpu" "tvm" "vsinpu" "webgpu" "winml")
+    mkdir -p "${target_dir}/include/core/migraphx"
+    find "${base_dir}/onnxruntime/core/providers/migraphx" -type f -name "*.h" -exec cp {} "${target_dir}/include/core/migraphx/" \;
+    local unwanted_providers=("acl" "armnn" "cann" "coreml" "dml" "dnnl" "nnapi" "openvino" "rknpu" "tvm" "vsinpu" "webgpu" "winml" "cuda" "nv_tensorrt_rtx" "tensorrt")
     for provider in "${unwanted_providers[@]}"; do
         rm -rf "${target_dir}/include/core/providers/${provider}"
     done
@@ -150,6 +153,7 @@ build_wheel() {
         --parallel \
         --use_migraphx \
         --migraphx_home /opt/rocm \
+        --cmake_extra_defines onnxruntime_BUILD_UNIT_TESTS=OFF \
         --allow_running_as_root
     
     cd "${start_dir}" || exit 1
@@ -229,6 +233,10 @@ compress_results
 
 rm -rf "${base_dir}/${build_dir}"
 
+cd "${output_base}${backend}-build" || exit 1
+"${conda_path}/py312/bin/python" -m twine upload -u __token__ -p <PyPi_token> *.whl
+cd "${start_dir}" || exit 1
+
 echo "################################################################"
 echo "Completed all builds for combined backend"
 echo "################################################################"
@@ -236,6 +244,6 @@ echo "################################################################"
 echo "=============================================="
 echo "All builds completed successfully!"
 echo "Output directory: ${output_base}${backend}-build"
-echo "  - onnxruntime-${version}-${backend} (shared library)"
-echo "  - onnxruntime_rocm-${version}-cp*-cp*-manylinux_${glibc_file_version}_x86_64.whl (Python wheels)"
+echo "  - onnxruntime-${version}-${backend} \(shared library\)"
+echo "  - onnxruntime_rocm-${version}-cp*-cp*-manylinux_${glibc_file_version}_x86_64.whl \(Python wheels\)"
 echo "=============================================="

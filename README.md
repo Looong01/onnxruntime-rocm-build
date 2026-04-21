@@ -2,7 +2,7 @@
 1. Upgrade ONNXRuntime libraries to the newest versions.
 2. ~~Remove Python 3.9 support, because ONNXRuntime 1.20.0 does not support it.~~ Old update
 3. Add Python 3.14 support.
-4. Support ROCm 7.1.1.
+4. Support ROCm 7.2.2.
 5. Remove ROCm EP because of 1.23.0 update.
   
 # Prerequisites

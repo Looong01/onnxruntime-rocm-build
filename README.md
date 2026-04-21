@@ -41,13 +41,13 @@ Go to Releases page, choose the versions of ONNXRuntime-ROCm you want, and ```ta
 ```
 Ubuntu 22.04
 Python 3.10~3.14
-ROCm 7.1.1
+ROCm 7.2.2
 GLIBC 2.34
-GNU-11
-Clang-20
+GNU-13
+Clang-22
 ```
   
 # Current version
 ```
-onnxruntime-1.23.2
+onnxruntime-1.25.0
 ```

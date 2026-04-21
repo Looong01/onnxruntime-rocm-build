@@ -1,10 +1,10 @@
 #!/bin/bash
 set -euo pipefail
 
-# export CXXFLAGS="-Wno-error"
+export CXXFLAGS="-Wno-error=deprecated -Wno-error=free-nonheap-object"
 
 conda_path="/root/miniconda3/"
-version="1.24.4"
+version="1.25.0"
 rocm_version="7.2"
 glibc_version="2.34"
 dir_os="Linux"
@@ -79,8 +79,8 @@ build_c_cpp_csharp() {
         find "${base_dir}" -type f -name "${header}" -exec cp {} "${target_dir}/include/" \;
     done
     cp -r "${base_dir}/include/onnxruntime/core/providers" "${target_dir}/include/core/"
-    mkdir -p "${target_dir}/include/core/migraphx"
-    find "${base_dir}/onnxruntime/core/providers/migraphx" -type f -name "*.h" -exec cp {} "${target_dir}/include/core/migraphx/" \;
+    mkdir -p "${target_dir}/include/core/providers/migraphx"
+    find "${base_dir}/onnxruntime/core/providers/migraphx" -type f -name "*.h" -exec cp {} "${target_dir}/include/core/providers/migraphx/" \;
     local unwanted_providers=("acl" "armnn" "cann" "coreml" "dml" "dnnl" "nnapi" "openvino" "rknpu" "tvm" "vsinpu" "webgpu" "winml" "cuda" "nv_tensorrt_rtx" "tensorrt")
     for provider in "${unwanted_providers[@]}"; do
         rm -rf "${target_dir}/include/core/providers/${provider}"
